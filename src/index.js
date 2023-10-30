@@ -24,12 +24,9 @@ const options = {
   rootMargin: '200px',
 };
 
-const observer = new IntersectionObserver(callback, options);
-observer.observe(refs.target);
-
 async function getGalleryItems(searchQuery, page) {
   if (!searchQuery) {
-    return;
+    return Promise.reject('Search query should not be empty');
   }
   const params = {
     key: API_KEY,
@@ -53,6 +50,9 @@ async function getGalleryItems(searchQuery, page) {
 refs.form.addEventListener('submit', getSearchResult);
 refs.load_more.addEventListener('click', loadMore);
 
+const observer = new IntersectionObserver(callback, options);
+observer.observe(refs.target);
+
 function getFormData() {
   const formData = new FormData(refs.form);
   const props = Object.fromEntries(formData);
@@ -65,7 +65,6 @@ async function getSearchResult(e) {
   const searchQuery = getFormData();
 
   resetGallery();
-
   try {
     const resp = await getGalleryItems(searchQuery, page);
     page += 1;
@@ -74,9 +73,8 @@ async function getSearchResult(e) {
     Notiflix.Notify.success(`Hooray! We found ${resp.totalHits} images.`);
     makeGallery(hits);
     toggleLoadMoreButton();
-    simplelightbox.refresh();
   } catch (err) {
-    console.log(err);
+    Notiflix.Notify.failure('You`ve got an API err:' + err);
   }
 }
 
@@ -131,18 +129,25 @@ function createMarkup(hits) {
                   </div>`
     )
     .join('');
-  simplelightbox = new SimpleLightbox('.photo-card a');
   return markup;
 }
 
 function makeGallery(data) {
   refs.gallery_container.insertAdjacentHTML('beforeend', createMarkup(data));
+  initSimpleLightbox();
 }
 
 function resetGallery() {
   refs.gallery_container.innerHTML = '';
   page = 1;
   refs.load_more.classList.add('visually-hidden');
+}
+
+function initSimpleLightbox() {
+  if (simplelightbox) {
+    simplelightbox.destroy();
+  }
+  simplelightbox = new SimpleLightbox('.photo-card a');
 }
 
 function smoothScroll() {
