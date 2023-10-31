@@ -17,7 +17,7 @@ let page = 1;
 const per_page = 40;
 const scrollCoef = 1.3;
 const last_page = 13;
-const simplelightbox = new SimpleLightbox('.photo-card a');
+const simplelightbox = new SimpleLightbox('.gallery .photo-card a');
 
 const options = {
   root: null,
@@ -155,6 +155,7 @@ function callback(entries, observer) {
     if (entry.isIntersecting) {
       try {
         const resp = await getGalleryItems(searchQuery, page);
+        page += 1;
         const { hits } = resp;
         createMarkup(hits);
 
