@@ -17,12 +17,13 @@ let page = 1;
 const per_page = 40;
 const scrollCoef = 1.3;
 const last_page = 13;
-let simplelightbox;
+const simplelightbox = new SimpleLightbox('.photo-card a');
 
 const options = {
   root: null,
   rootMargin: '200px',
 };
+const observer = new IntersectionObserver(callback, options);
 
 async function getGalleryItems(searchQuery, page) {
   if (!searchQuery) {
@@ -38,6 +39,9 @@ async function getGalleryItems(searchQuery, page) {
     per_page,
   };
   const result = await axios.get(BASE_URL, { params });
+  if (page < last_page) {
+    observer.observe(refs.target);
+  }
   if (page === last_page) {
     Notiflix.Notify.info(
       "We're sorry, but you've reached the end of search results."
@@ -49,9 +53,6 @@ async function getGalleryItems(searchQuery, page) {
 
 refs.form.addEventListener('submit', getSearchResult);
 refs.load_more.addEventListener('click', loadMore);
-
-const observer = new IntersectionObserver(callback, options);
-observer.observe(refs.target);
 
 function getFormData() {
   const formData = new FormData(refs.form);
@@ -71,7 +72,7 @@ async function getSearchResult(e) {
     const { hits } = resp;
 
     Notiflix.Notify.success(`Hooray! We found ${resp.totalHits} images.`);
-    makeGallery(hits);
+    createMarkup(hits);
     toggleLoadMoreButton();
   } catch (err) {
     Notiflix.Notify.failure('You`ve got an API err:' + err);
@@ -92,7 +93,7 @@ async function loadMore() {
       );
     }
 
-    makeGallery(hits);
+    createMarkup(hits);
     smoothScroll();
   } catch (err) {
     console.log(err);
@@ -129,25 +130,14 @@ function createMarkup(hits) {
                   </div>`
     )
     .join('');
-  return markup;
-}
-
-function makeGallery(data) {
-  refs.gallery_container.insertAdjacentHTML('beforeend', createMarkup(data));
-  initSimpleLightbox();
+  refs.gallery_container.insertAdjacentHTML('beforeend', markup);
+  simplelightbox.refresh();
 }
 
 function resetGallery() {
   refs.gallery_container.innerHTML = '';
   page = 1;
   refs.load_more.classList.add('visually-hidden');
-}
-
-function initSimpleLightbox() {
-  if (simplelightbox) {
-    simplelightbox.destroy();
-  }
-  simplelightbox = new SimpleLightbox('.photo-card a');
 }
 
 function smoothScroll() {
@@ -166,7 +156,7 @@ function callback(entries, observer) {
       try {
         const resp = await getGalleryItems(searchQuery, page);
         const { hits } = resp;
-        makeGallery(hits);
+        createMarkup(hits);
 
         if (page === last_page) {
           observer.unobserve(refs.target);
